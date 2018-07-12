@@ -35,6 +35,14 @@ var UserSchema = new mongoose.Schema({
     }]
 });
 
+//UserSchema.methods are instance/objects method
+UserSchema.methods.toJSON = function () {
+    var user = this;
+    var userObject = user.toObject();
+
+    return _.pick(userObject, ['_id', 'email']);
+};
+
 UserSchema.methods.generateAuthToken = function () {
     var user = this;
     var access = 'auth';
@@ -47,11 +55,28 @@ UserSchema.methods.generateAuthToken = function () {
     });
 };
 
-UserSchema.methods.toJSON = function () {
-    var user = this;
-    var userObject = user.toObject();
+//UserSchema.statics are static methods
+UserSchema.statics.findByToken = function (token) {
+    var User = this;
+    var decoded;
 
-    return _.pick(userObject, ['_id', 'email']);
+    //jwt.verify will throw exception
+    try {
+        decoded = jwt.verify(token, 'abc123');
+    } catch (e) {
+        //return new Promise((resolve, reject) => {
+        //    reject();
+        //});
+        //can also be
+        return Promise.reject();
+    }
+
+    //Retrieving by property
+    return User.findOne({
+        _id: decoded._id, 
+        'tokens.token': token,
+        'tokens.access': 'auth'
+    });
 };
 
 //Can not add methods in mongoose.model
